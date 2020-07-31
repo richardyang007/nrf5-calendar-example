@@ -29,9 +29,12 @@ void nrf_cal_init(void)
     
     // Configure the RTC for 1 minute wakeup (default)
     CAL_RTC->PRESCALER = 0xFFF;
-    CAL_RTC->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
-    CAL_RTC->INTENSET = RTC_INTENSET_COMPARE0_Msk;
-    CAL_RTC->CC[0] = m_rtc_increment * 8;
+    //CAL_RTC->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
+    //CAL_RTC->INTENSET = RTC_INTENSET_COMPARE0_Msk;
+    //CAL_RTC->CC[0] = m_rtc_increment * 8;
+    //richard yang modify, Change CC0 INT to TICK INT, because Compare Task have jetter/delay problem (see nRF52832_PS_V1.4 page 246,  25.8 TASK and EVENT jitter/delay)
+    CAL_RTC->EVTENSET = RTC_EVTENSET_TICK_Msk;
+    CAL_RTC->INTENSET = RTC_INTENSET_TICK_Msk;
     CAL_RTC->TASKS_START = 1;
     NVIC_SetPriority(CAL_RTC_IRQn, CAL_RTC_IRQ_Priority);
     NVIC_EnableIRQ(CAL_RTC_IRQn);  
@@ -101,11 +104,15 @@ char *nrf_cal_get_time_string(bool calibrated)
  
 void CAL_RTC_IRQHandler(void)
 {
-    if(CAL_RTC->EVENTS_COMPARE[0])
+    //richard yang modify, Change CC0 INT to TICK INT, because Compare Task have jetter/delay problem (see nRF52832_PS_V1.4 page 246,  25.8 TASK and EVENT jitter/delay)
+    //if use Compare task, the time will be not accurate
+    
+    //if(CAL_RTC->EVENTS_COMPARE[0])
+    if(CAL_RTC->EVENTS_TICK)
     {
-        CAL_RTC->EVENTS_COMPARE[0] = 0;
-        
-        CAL_RTC->TASKS_CLEAR = 1;
+        //CAL_RTC->EVENTS_COMPARE[0] = 0;
+        //CAL_RTC->TASKS_CLEAR = 1;
+        CAL_RTC->EVENTS_TICK = 0;
         
         m_time += m_rtc_increment;
         if(cal_event_callback) cal_event_callback();
